@@ -20,14 +20,30 @@ namespace probx {
     return dice::MappedRoll{map};
   }
 
+  constexpr dice::MappedRoll operator|(Rollable auto && roll, Transformer auto && transformer) {
+    return transform
+      (std::forward<decltype(transformer)>(transformer),
+       std::forward<decltype(roll)>(roll)
+       );
+  }
+
   constexpr std::pair<dice::MappedRoll, dice::MappedRoll> split(Rollable auto && roll) {
     auto resultOnly = [](Outcome o) {return Outcome{o.result};};
     auto extraOnly = [](Outcome o) {return Outcome{o.extra};};
 
+    return split(std::forward<decltype(roll)>(roll), resultOnly, extraOnly);
+  }
+
+  constexpr std::pair<dice::MappedRoll, dice::MappedRoll> split
+  (
+   Rollable auto && roll,
+   Transformer auto && resultTransformer,
+   Transformer auto && extraTransformer
+   ) {
     return std::make_pair
       (
-       transform(resultOnly, roll),
-       transform(extraOnly, roll)
+       transform(resultTransformer, std::forward<decltype(roll)>(roll)),
+       transform(extraTransformer, std::forward<decltype(roll)>(roll))
        );
   }
 			  
