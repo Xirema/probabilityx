@@ -1,0 +1,134 @@
+#pragma once
+#include "Roll.hpp"
+#include "dice/Dice.hpp"
+#include "compositors/Common.hpp"
+#include<variant>
+#include<boost/container_hash/hash_fwd.hpp>
+#include<unordered_set>
+
+template<>
+struct std::hash<probx::RollVariant> {
+  constexpr size_t operator()(probx::RollVariant const& v) const {
+    return std::visit([](probx::Rollable auto && roll) {return probx::hash(roll);}, v);
+  }
+};
+
+template<>
+struct std::equal_to<probx::RollVariant> {
+  constexpr bool operator()(probx::RollVariant const& v1, probx::RollVariant const& v2) {
+    return std::visit([&v2](probx::Rollable auto && r1) {
+      return std::visit([&r1](probx::Rollable auto && r2) {
+	return probx::equals(r1, r2);
+      }, v2);
+    }, v1);
+  }
+};
+
+template<>
+struct boost::hash<probx::Outcome> {
+  constexpr size_t operator()(probx::Outcome const& o) const {
+    size_t ret{};
+    boost::hash_combine(ret, o.result);
+    boost::hash_combine(ret, o.extra);
+    return ret;
+  }
+};
+
+template<typename T, typename U>
+struct std::hash<std::pair<T, U>> {
+  constexpr size_t operator()(std::pair<T, U> const& p) const {
+    size_t ret{};
+    boost::hash_combine(ret, p.first);
+    boost::hash_combine(ret, p.second);
+    return ret;
+  }
+};
+
+namespace probx {
+  namespace detail {
+    struct FactoryRules {
+      std::optional<Integer> numOfDice{};
+      std::optional<Integer> sizeOfDice{};
+      std::optional<Outcome> threshold{};
+      constexpr auto operator<=>(FactoryRules const& o) const = default;
+    };
+  }
+}
+
+template<>
+struct std::hash<probx::detail::FactoryRules> {
+  constexpr size_t operator()(probx::detail::FactoryRules const& rules) const {
+    size_t ret{};
+    boost::hash_combine(ret, rules.numOfDice);
+    boost::hash_combine(ret, rules.sizeOfDice);
+    boost::hash_combine(ret, rules.threshold);
+    return ret;
+  }
+};
+
+namespace probx{
+  class RollFactory {
+    using Rules = detail::FactoryRules;
+    std::unordered_map<Rules, RollVariant> xdyRolls;
+  public:
+    constexpr RollVariant const& getXdYRoll(Integer numOfDice, Integer sizeOfDice, std::optional<Outcome> threshold = {}) {
+      Rules rules{.numOfDice = numOfDice, .sizeOfDice = sizeOfDice, .threshold = threshold};
+      if(auto it = xdyRolls.find(rules); it != xdyRolls.end()) {
+	return it->second;
+      }
+      if(numOfDice <= 0) {
+	return xdyRolls[rules] = dice::MappedRoll{};
+      } else if(numOfDice == 1) {
+	dice::RegularDie base{sizeOfDice};
+	if(!threshold) {
+	  return xdyRolls[rules] = base;
+	}
+	return xdyRolls[rules] = composite(compositors::d20::rerollOnce(*threshold), base, base);
+      } else {
+	for(Integer power = 0; power < static_cast<Integer>(std::log2(numOfDice)); power++) {
+	  Rules newRules = rules;
+	  newRules.numOfDice = 2 << power;
+	  if(xdyRolls.find(newRules) != xdyRolls.end()) {
+	    continue;
+	  }
+	  xdyRolls[newRules] =
+	    std::visit(
+		       [](Rollable auto && roll){return composite(compositors::adder, roll, roll);},
+		       getXdYRoll(1 << power, sizeOfDice, threshold)
+		       );
+	}
+	Integer remainingDice = numOfDice;
+	RollVariant const* ret = nullptr;
+	while(remainingDice > 0) {
+	  Rules newRules = rules;
+	  Integer largestPowerOfTwo = 1 << static_cast<Integer>(std::log2(remainingDice));
+	  newRules.numOfDice = largestPowerOfTwo;
+	  remainingDice -= largestPowerOfTwo;
+	  auto it = xdyRolls.find(newRules);
+	  if(it == xdyRolls.end()) {
+	    throw std::runtime_error("This should never happen!");
+	  }
+	  if(ret == nullptr) {
+	    ret = &it->second;
+	    continue;
+	  }
+	  Integer currentDice = numOfDice - remainingDice;
+	  Rules finalRules = newRules;
+	  finalRules.numOfDice = currentDice;
+	  if(auto currIt = xdyRolls.find(finalRules); currIt != xdyRolls.end()) {
+	    ret = &currIt->second;
+	    continue;
+	  }
+	  auto const& newRet = xdyRolls[finalRules] =
+	    std::visit([ret](Rollable auto && roll1) {
+		return std::visit([&roll1](Rollable auto && roll2) {
+		  return composite(compositors::adder, roll1, roll2);
+		}, *ret);
+	    }, it->second);
+	  ret = &newRet;
+	}
+	return *ret;
+      }
+    }
+  };
+}
