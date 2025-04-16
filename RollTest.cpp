@@ -108,6 +108,13 @@ int main() {
     std::print("{:2} : {:5} ({:7.3f}%)\n", outcome, count, count / 10'000.00);
     }*/
 
-  probx::dice::XdYRoll native400D20{400, 20};
-  printRoll(native400D20);
+  //probx::dice::XdYRoll native400D20{400, 20};
+  //printRoll(native400D20);
+
+  probx::dice::RegularDie d6{6};
+  using namespace probx::compositors;
+  auto positiveTwoDSix = d6 + d6;
+  printRoll(positiveTwoDSix);
+  auto negativeTwoDSix = d6 - d6;
+  printRoll(negativeTwoDSix);
 }
