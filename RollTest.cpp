@@ -1,29 +1,35 @@
-#include "probabilityx/Roll.hpp"
-#include "probabilityx/dice/RegularDie.hpp"
-#include "probabilityx/dice/Modifier.hpp"
-#include "probabilityx/dice/MappedRoll.hpp"
-#include "probabilityx/dice/XdYRoll.hpp"
+#include <print>
+#include <random>
+#include <ranges>
+
 #include "probabilityx/Compositors.hpp"
-#include "probabilityx/compositors/Common.hpp"
-#include "probabilityx/Factory.hpp"
 #include "probabilityx/D20.hpp"
-#include<ranges>
-#include<random>
-#include<print>
+#include "probabilityx/Factory.hpp"
+#include "probabilityx/Roll.hpp"
+#include "probabilityx/compositors/Common.hpp"
+#include "probabilityx/dice/MappedRoll.hpp"
+#include "probabilityx/dice/Modifier.hpp"
+#include "probabilityx/dice/RegularDie.hpp"
+#include "probabilityx/dice/XdYRoll.hpp"
 
 int main() {
   probx::dice::RegularDie die{6};
-  auto printRoll = [](probx::Rollable auto && roll) {
-    for(auto outcome : roll) {
-      std::print(std::cout, "Odds of {}: {:%}\n", outcome, oddsOf(roll, outcome));
+  auto printRoll = [](probx::Rollable auto&& roll) {
+    for (auto outcome : roll) {
+      std::print(std::cout, "Odds of {}: {:%}\n", outcome,
+                 oddsOf(roll, outcome));
     }
   };
   printRoll(die);
 
-  std::print(std::cout, "Odds of at least rolling a 3: {:%}\n", probx::oddsAtLeast(die, 3));
-  std::print(std::cout, "Odds of at most rolling a 2: {:%}\n", probx::oddsAtMost(die, 2));
-  std::print(std::cout, "Odds of rolling less than 5: {:%}\n", probx::oddsLessThan(die, 5));
-  std::print(std::cout, "Odds of rolling more than 4: {:%}\n", probx::oddsMoreThan(die, 4));
+  std::print(std::cout, "Odds of at least rolling a 3: {:%}\n",
+             probx::oddsAtLeast(die, 3));
+  std::print(std::cout, "Odds of at most rolling a 2: {:%}\n",
+             probx::oddsAtMost(die, 2));
+  std::print(std::cout, "Odds of rolling less than 5: {:%}\n",
+             probx::oddsLessThan(die, 5));
+  std::print(std::cout, "Odds of rolling more than 4: {:%}\n",
+             probx::oddsMoreThan(die, 4));
   probx::dice::Modifier mod{3};
   printRoll(mod);
 
@@ -43,7 +49,8 @@ int main() {
   std::print(std::cout, "Randomly generated outcome: {}\n", mapped(engine));
 
   using probx::compositors::adder;
-  auto twoDSix = probx::composite(adder, die, die, die, probx::dice::Modifier(5));
+  auto twoDSix =
+      probx::composite(adder, die, die, die, probx::dice::Modifier(5));
 
   printRoll(twoDSix);
 
@@ -55,7 +62,7 @@ int main() {
   printRoll(d4d6);
 
   dice = {};
-  for(int i = 0; i < 4; i++) {
+  for (int i = 0; i < 4; i++) {
     dice.emplace_back(2);
   }
 
@@ -66,21 +73,19 @@ int main() {
   probx::RollFactory factory{};
 
   std::visit(printRoll, factory.getXdYRoll(2, 6, 2));
-  
+
   std::visit(printRoll, factory.getXdYRoll(1, 6, 2));
 
   auto d5OddD7Even = probx::ternaryComposite(
-					     probx::compositors::evenodd{},
-					     probx::dice::RegularDie{6},
-					     probx::dice::RegularDie{5},
-					     probx::dice::RegularDie{7}
-					     );
+      probx::compositors::evenodd{}, probx::dice::RegularDie{6},
+      probx::dice::RegularDie{5}, probx::dice::RegularDie{7});
   printRoll(d5OddD7Even);
 
   namespace d20 = probx::d20;
   d20::AttackRules attackRules;
   attackRules.attackMod = 5;
-  attackRules.damageDice = {probx::dice::RegularDie{6}, probx::dice::RegularDie{6}};
+  attackRules.damageDice = {probx::dice::RegularDie{6},
+                            probx::dice::RegularDie{6}};
   attackRules.damageMod = 3;
   auto l1Greatsword = d20::getAttackRoll(attackRules);
   std::print(std::cout, "\nNow Testing a Level 1 Greatsword!\n\n");
@@ -108,8 +113,8 @@ int main() {
     std::print("{:2} : {:5} ({:7.3f}%)\n", outcome, count, count / 10'000.00);
     }*/
 
-  //probx::dice::XdYRoll native400D20{400, 20};
-  //printRoll(native400D20);
+  // probx::dice::XdYRoll native400D20{400, 20};
+  // printRoll(native400D20);
 
   probx::dice::RegularDie d6{6};
   using namespace probx::compositors;

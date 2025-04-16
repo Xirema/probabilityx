@@ -16,7 +16,7 @@ constexpr dice::MappedRoll operator+(Rollable auto&& a, Rollable auto&& b) {
   return composite(adder, a, b);
 }
 constexpr dice::MappedRoll operator-(Rollable auto&& a, Rollable auto&& b) {
-  return a + (b | [](Outcome o) {return Outcome{-o.result, -o.extra};});
+  return a + (b | [](Outcome o) { return Outcome{-o.result, -o.extra}; });
 }
 namespace d20 {
 constexpr Outcome advantage(Outcome a, Outcome b) {
