@@ -3,22 +3,56 @@
 #include "compositors/Common.hpp"
 
 namespace probx::d20 {
+//Rules for attackers in a generic (D&D5e.x) system
+// - attackMod : Integer - Total Attack Mod (*all* modifiers combined)
+// - extraAttackDice : RegularDie[] - any variable modifiers to attack rolls (bless/etc)
+// - damageDice : RegularDie[] - all dice added together to calculate damage normally
+// - damageMod : Integer - static damage modifier
+// - critRange : Integer - default of 1, total range of critical hits (1 means only nat20 crits)
+// - critMultiplier : Integer - default of 2, damage dice count multiplied by this number when crits occur
+// - extraCrit : Integer - additional number of damage dice to add to crits, applied *after* multiplier
+// - extraCritFlat : Integer - static damage to add to critical hits
+// - missRange : Integer - default of 1, increases range of "automatic misses"
+// - missDamageDice : RegularDie[] - damage that applies even on a miss
+// - missDaamge : Integer - static damage that applies even on a miss
+// - targetAC : Integer - determines nominal attack roll required to hit
+// - damageRerollThreshold ?: Integer - determines what threshold under which damage dice may be rerolled
 struct AttackRules {
+  // - attackMod : Integer - Total Attack Mod (*all* modifiers combined)
   Integer attackMod{};
+  // - extraAttackDice : RegularDie[] - any variable modifiers to attack rolls (bless/etc)
   std::vector<dice::RegularDie> extraAttackDice;
+  // - damageDice : RegularDie[] - all dice added together to calculate damage normally
   std::vector<dice::RegularDie> damageDice;
+  // - damageMod : Integer - static damage modifier
   Integer damageMod{};
+  // - critRange : Integer - default of 1, total range of critical hits (1 means only nat20 crits)
   Integer critRange{1};
+  // - critMultiplier : Integer - default of 2, damage dice count multiplied by this number when crits occur
   Integer critMultiplier{2};
+  // - extraCrit : Integer - additional number of damage dice to add to crits, applied *after* multiplier
   Integer extraCrit{};
+  // - extraCritFlat : Integer - static damage to add to critical hits
   Integer extraCritFlat{};
+  // - missRange : Integer - default of 1, increases range of "automatic misses"
   Integer missRange{1};
+  // - missDamageDice : RegularDie[] - damage that applies even on a miss
+  std::vector<dice::RegularDie> missDamageDice;
+  // - missDaamge : Integer - static damage that applies even on a miss
+  Integer missDamage{};
+  // - targetAC : Integer - determines nominal attack roll required to hit
   Integer targetAC{};
+  // - damageRerollThreshold ?: Integer - determines what threshold under which damage dice may be rerolled
   std::optional<Integer> damageRerollThreshold{};
 };
 
 namespace detail {
+//Ternary Compositor that takes an armor class as configuration
+//For the boolean test, returns true if not a critical hit
+//For the composite, returns 0 if the attack roll is less than the armor class, returns the damage if not
 struct AttackRollCompositor {
+  //Constructor
+  // - armorClass : Integer - threshold that must be met for damage to be applied
   constexpr AttackRollCompositor(Integer armorClass) : armorClass(armorClass) {}
   Integer armorClass{};
   constexpr bool operator()(Outcome o) const { return o.extra <= 0; }
@@ -31,6 +65,7 @@ struct AttackRollCompositor {
 };
 }  // namespace detail
 
+//Coagulates a series of rolls down into a single roll representing all possible outcomes of an attack
 constexpr dice::MappedRoll getAttackRoll(AttackRules rules) {
   std::ranges::sort(rules.damageDice,
                     [](dice::RegularDie const& a, dice::RegularDie const& b) {

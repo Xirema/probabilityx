@@ -9,6 +9,9 @@ class CustomDie {
   constexpr CustomDie(std::vector<Outcome> outcomes)
       : outcomes(std::move(outcomes)) {
     std::ranges::sort(this->outcomes);
+    if(auto it = std::ranges::adjacent_find(this->outcomes); it != this->outcomes.end()) {
+      throw std::runtime_error("CustomDie may not contain duplicate rolls; use extra field to disambiguate identical rolls, or use MappedRoll instead");
+    }
   }
 
   constexpr auto begin() const { return outcomes.begin(); }

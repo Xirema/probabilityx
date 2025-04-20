@@ -74,11 +74,16 @@ struct std::hash<probx::detail::FactoryRules> {
 };
 
 namespace probx {
+//A Factory for producing more complex rolls
+//Will memoize results and retrieve them from within the factory
 class RollFactory {
   using Rules = detail::FactoryRules;
   std::unordered_map<Rules, RollVariant> xdyRolls;
 
  public:
+  //Produces a distribution by subdividing the roll in half repeatedly until individual dice are achieved
+  //Then combines dice together, memoizing results and using memoized results instead of repeatedly calculating intermediates
+  //Alternatively, if a fully constructed result already exists, returns that instead
   constexpr RollVariant const& getXdYRoll(
       Integer numOfDice, Integer sizeOfDice,
       std::optional<Outcome> threshold = {}) {
