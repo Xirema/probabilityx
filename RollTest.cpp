@@ -122,4 +122,20 @@ int main() {
   printRoll(positiveTwoDSix);
   auto negativeTwoDSix = d6 - d6;
   printRoll(negativeTwoDSix);
+
+  probx::dice::MappedRoll::Map critFail;
+  critFail[1] = 1;
+  critFail[0] = 19;
+
+  probx::dice::MappedRoll critFailRoll{critFail};
+  std::vector<probx::dice::MappedRoll> vecOfRolls;
+  vecOfRolls.resize(168, critFailRoll);
+  // auto finalRoll = critFailRoll;
+  // for(int i = 1; i < 168; i++) {
+  //   finalRoll = finalRoll + critFailRoll;
+  // }
+  auto finalRoll = probx::composite(probx::compositors::adder, vecOfRolls);
+  std::println("");
+  std::println("Final Roll:");
+  printRoll(finalRoll);
 }

@@ -89,7 +89,11 @@ constexpr dice::MappedRoll composite(Compositor auto&& func, Rolls&& rolls) {
     ++r2;
     return composite(std::forward<decltype(func)>(func), *r1, *r2);
   } else {
-    auto chunks = std::ranges::chunk_view(rolls, size / 2);
+    size_t chunkSize = size / 2;
+    if((size % 2) == 1) {
+      ++chunkSize;
+    }
+    auto chunks = std::ranges::chunk_view(rolls, chunkSize);
     auto mappedRoll1 = composite(std::forward<decltype(func)>(func),
                                  *std::ranges::begin(chunks));
     auto mappedRoll2 = composite(std::forward<decltype(func)>(func),
