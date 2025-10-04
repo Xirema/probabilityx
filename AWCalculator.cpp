@@ -66,8 +66,9 @@ int main() {
   std::map<std::string, UnitData> units;
   std::string line;
   int lineNumber = 0;
-  auto clampHitpoints = [](probx::Outcome o) {
-    return probx::Outcome{o.result > 100 ? 100 : o.result < 0 ? 0 : o.result};
+  using namespace probx;
+  auto clampHitpoints = [](Outcome o) {
+    return Outcome{o.result > 100 ? 100 : o.result < 0 ? 0 : o.result};
   };
   while (std::getline(std::cin, line)) {
     ++lineNumber;
@@ -87,8 +88,7 @@ int main() {
       auto& unitData = units[std::string{args.at(0)}];
       if (auto parsed = parse(args.at(1)); parsed.has_value()) {
         unitData = *parsed;
-        unitData.hitPoints =
-            probx::transform(clampHitpoints, unitData.hitPoints);
+        unitData.hitPoints = transform(clampHitpoints, unitData.hitPoints);
       } else {
         if (parsed.error() == ParseError::invalidNumber) {
           std::print(std::cerr, "Unable to parse number in line {}: '{}'\n",
@@ -125,8 +125,7 @@ int main() {
         defendProps.defenseBoost += defender.defenseMod;
         auto results = calculateCombat(attackProps, defendProps,
                                        attacker.hitPoints, defender.hitPoints);
-        std::tie(attacker.hitPoints, defender.hitPoints) =
-            probx::split(results);
+        std::tie(attacker.hitPoints, defender.hitPoints) = split(results);
       } else {
         std::print(std::cerr,
                    "Units in attack on line {} are specified improperly: {}\n",
@@ -156,12 +155,11 @@ int main() {
             "towers and {} properties, at (approximately) {:.0f} Hitpoints.\n",
             unitId, unitData.name, unitData.terrain, unitData.commander,
             unitData.copState, unitData.hasAmmo ? "" : "no ", unitData.towers,
-            unitData.properties, probx::mean(unitData.hitPoints));
+            unitData.properties, mean(unitData.hitPoints));
         for (auto hp : unitData.hitPoints) {
           std::print(
               "  {:3}: {:7.3f}%\n", hp,
-              probx::oddsOf(unitData.hitPoints, hp).convert_to<Decimal>() *
-                  100);
+              oddsOf(unitData.hitPoints, hp).convert_to<Decimal>() * 100);
         }
       } else if (command == "echo") {
         std::print("{}\n", commandArgs);
@@ -197,25 +195,18 @@ int main() {
           unitData.properties = std::stoi(change);
         } else if (type == "damage") {
           unitData.hitPoints =
-              probx::composite(probx::compositors::adder, unitData.hitPoints,
-                               probx::dice::Modifier{-std::stoi(change)});
-          unitData.hitPoints =
-              probx::transform(clampHitpoints, unitData.hitPoints);
+              composite(probx::compositors::adder, unitData.hitPoints,
+                        dice::Modifier{-std::stoi(change)}) |
+              clampHitpoints;
         } else if (type == "heal") {
           unitData.hitPoints =
-              probx::composite(probx::compositors::adder, unitData.hitPoints,
-                               probx::dice::Modifier{std::stoi(change)});
-          unitData.hitPoints =
-              probx::transform(clampHitpoints, unitData.hitPoints);
+              composite(probx::compositors::adder, unitData.hitPoints,
+                        dice::Modifier{std::stoi(change)}) |
+              clampHitpoints;
         } else if (type == "roundup") {
-          unitData.hitPoints = probx::transform(
-              [](probx::Outcome o) {
-                return probx::Outcome{
-                    static_cast<Integer>(std::ceil(o.result / 10.)) * 10};
-              },
-              unitData.hitPoints);
-          unitData.hitPoints =
-              probx::transform(clampHitpoints, unitData.hitPoints);
+          unitData.hitPoints = unitData.hitPoints | [](Outcome o) {
+            return static_cast<Integer>(std::ceil(o.result / 10.)) * 10;
+          } | clampHitpoints;
         }
       } catch (...) {
         std::print(std::cerr, "Error parsing Unit Modification on line {}.\n",
