@@ -62,14 +62,18 @@ constexpr std::expected<UnitData, ParseError> parse(std::string_view string) {
   }
 }
 
+using namespace probx;
+constexpr Outcome clampHitpoints(Outcome o) {
+  return Outcome{o.result > 100 ? 100 : o.result < 0 ? 0 : o.result};
+}
+constexpr Outcome clampNonlethal(Outcome o) {
+  return Outcome{o.result > 100 ? 100 : o.result < 1 ? 1 : o.result};
+}
+
 int main() {
   std::map<std::string, UnitData> units;
   std::string line;
   int lineNumber = 0;
-  using namespace probx;
-  auto clampHitpoints = [](Outcome o) {
-    return Outcome{o.result > 100 ? 100 : o.result < 0 ? 0 : o.result};
-  };
   while (std::getline(std::cin, line)) {
     ++lineNumber;
     if (line.size() > 0 && line.at(0) == '#') {
@@ -166,7 +170,7 @@ int main() {
       }
     } else if (line.find('<') != std::string::npos) {
       boost::split(args, line, [](char c) { return c == '<'; });
-      if (args.size() != 3) {
+      if (args.size() < 3) {
         std::print(
             std::cerr,
             "Incorrect number of arguments for Unit Modification on line {}.\n",
@@ -176,6 +180,10 @@ int main() {
       std::string unitId{args.at(0)};
       std::string_view type = args.at(1);
       std::string change{args.at(2)};
+      std::optional<std::string> option;
+      if (args.size() == 4) {
+        option.emplace(args.at(3));
+      }
       if (units.find(unitId) == units.end()) {
         std::print(std::cerr, "Unable to find unit '{}' on line {}.\n", unitId,
                    lineNumber);
@@ -196,8 +204,12 @@ int main() {
         } else if (type == "damage") {
           unitData.hitPoints =
               composite(probx::compositors::adder, unitData.hitPoints,
-                        dice::Modifier{-std::stoi(change)}) |
-              clampHitpoints;
+                        dice::Modifier{-std::stoi(change)});
+          if (option == "NoKill") {
+            unitData.hitPoints = unitData.hitPoints | clampNonlethal;
+          } else {
+            unitData.hitPoints = unitData.hitPoints | clampHitpoints;
+          }
         } else if (type == "heal") {
           unitData.hitPoints =
               composite(probx::compositors::adder, unitData.hitPoints,

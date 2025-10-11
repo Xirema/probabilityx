@@ -32,7 +32,7 @@
 #  * echo: Args is printed to the console as-is
 #
 #MODIFICATION DEFINITION
-#UnitId<Type<Arg
+#UnitId<Type<Arg<Options
 #  * UnitId: Unit Id of the unit that will be modified (with other attributes left alone)
 #  * Type: The modification being made. The following are valid:
 #    - terrain: the terrain type of the unit, as though it moved
@@ -41,6 +41,7 @@
 #    - towers: The number of comm towers the player has
 #    - properties: The number of urban properties the player owns
 #    - damage: The number of hitpoints to subtract from the unit
+#      - Option: NoKill will set the minimum HP after a damage effect to 1.
 #    - heal: The number of hitpoints to restore to the unit
 #    - roundup: Any fractional HP is rounded up to the nearest whole number (so 1-9 rounds up to 10, 11-19 rounds up to 20, etc.)
 
@@ -49,4 +50,7 @@ Victim:tank|plains|andy|||||||
 GrimmTank<terrain<city
 GrimmTank>Victim
 print!Victim
+print!GrimmTank
+
+GrimmTank<damage<200<NoKill
 print!GrimmTank
