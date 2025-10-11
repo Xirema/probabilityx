@@ -160,10 +160,16 @@ int main() {
             unitId, unitData.name, unitData.terrain, unitData.commander,
             unitData.copState, unitData.hasAmmo ? "" : "no ", unitData.towers,
             unitData.properties, mean(unitData.hitPoints));
+        std::print(
+              "   {:>3} : {:>7}    {:>7}   {:>7}\n", "HP", "Odds", "Dead%", "Alive%"
+        );
         for (auto hp : unitData.hitPoints) {
           std::print(
-              "  {:3}: {:7.3f}%\n", hp,
-              oddsOf(unitData.hitPoints, hp).convert_to<Decimal>() * 100);
+              "  {:3}: {:7.3f}%  {:7.3f}%  {:7.3f}%\n", hp,
+              oddsOf(unitData.hitPoints, hp).convert_to<Decimal>() * 100,
+              oddsAtMost(unitData.hitPoints, hp).convert_to<Decimal>() * 100,
+              oddsAtLeast(unitData.hitPoints, hp).convert_to<Decimal>() * 100
+            );
         }
       } else if (command == "echo") {
         std::print("{}\n", commandArgs);
