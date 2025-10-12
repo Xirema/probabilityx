@@ -620,7 +620,7 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
   };
   struct PassiveEffect {
     int firepower = 0, defense = 0, terrainStars = 0, goodLuck = 0, badLuck = 0,
-        counterFireBonus = 0, propertyFirepower = 0;
+        counterFireBonus = 0, propertyFirepower = 0, towerFirepower = 0, towerDefense = 0;
     bool starsFirepower = false;
     std::vector<Classification> requiredClassifications;
     std::vector<std::string> validTerrains;
@@ -642,6 +642,7 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
       newEffect.terrainStars = 0;
       newEffect.starsFirepower = 0;
       newEffect.counterFireBonus = 0;
+      newEffect.towerFirepower = 10;
       newData.d2d.push_back(newEffect);
     }
     {
@@ -1107,6 +1108,7 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
       newEffect.terrainStars = 0;
       newEffect.starsFirepower = 0;
       newEffect.counterFireBonus = 0;
+      newEffect.towerDefense = 10;
       newData.d2d.push_back(newEffect);
     }
     {
@@ -1118,6 +1120,8 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
       newEffect.terrainStars = 0;
       newEffect.starsFirepower = 0;
       newEffect.counterFireBonus = 0;
+      newEffect.towerFirepower = 10;
+      newEffect.towerDefense = 10;
       newData.cop.push_back(newEffect);
     }
     {
@@ -1129,6 +1133,8 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
       newEffect.terrainStars = 0;
       newEffect.starsFirepower = 0;
       newEffect.counterFireBonus = 0;
+      newEffect.towerFirepower = 20;
+      newEffect.towerDefense = 20;
       newData.scop.push_back(newEffect);
     }
     commanderPowers["javier"] = newData;
@@ -1868,6 +1874,8 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
                   properties.goodLuck += effect.goodLuck;
                   properties.badLuck += effect.badLuck;
                   properties.firepowerBoost += effect.propertyFirepower * urban;
+                  properties.towerFirepower += effect.towerFirepower;
+                  properties.towerDefense += effect.towerDefense;
                   if (!attacking) {
                     properties.firepowerBoost += effect.counterFireBonus;
                   }
@@ -1903,14 +1911,8 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
     addCOEffects(unitPropertiesB, unitDataB, commanderDataB,
                  defendingUnit.terrain, starsB, defendingUnit.properties,
                  defendingUnit.copState, false);
-    unitPropertiesA.firepowerBoost += 10 * attackingUnit.towers;
-    if (attackingUnit.commander == "javier") {
-      unitPropertiesA.defenseBoost += 10 * attackingUnit.towers;
-    }
-    unitPropertiesB.firepowerBoost += 10 * defendingUnit.towers;
-    if (defendingUnit.commander == "javier") {
-      unitPropertiesB.defenseBoost += 10 * defendingUnit.towers;
-    }
+    unitPropertiesA = unitPropertiesA.addTowers(attackingUnit.towers);
+    unitPropertiesB = unitPropertiesB.addTowers(defendingUnit.towers);
 
     return ret;
   } catch (std::runtime_error const& e) {

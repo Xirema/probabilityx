@@ -31,13 +31,13 @@ struct UnitProperties {
   bool damageStars = false;
   int goodLuck = 9;
   int badLuck = 0;
+  int towerFirepower = 0;
+  int towerDefense = 0;
 
-  constexpr UnitProperties addTowers(int towers, bool javier = false) const {
+  constexpr UnitProperties addTowers(int towers) const {
     UnitProperties copy{*this};
-    copy.firepowerBoost += 10 * towers;
-    if (javier) {
-      copy.defenseBoost += 10 * towers;
-    }
+    copy.firepowerBoost += towerFirepower * towers;
+    copy.defenseBoost += towerDefense * towers;
     return copy;
   }
 
