@@ -620,7 +620,8 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
   };
   struct PassiveEffect {
     int firepower = 0, defense = 0, terrainStars = 0, goodLuck = 0, badLuck = 0,
-        counterFireBonus = 0, propertyFirepower = 0, towerFirepower = 0, towerDefense = 0;
+        counterFireBonus = 0, propertyFirepower = 0, towerFirepower = 0, towerDefense = 0,
+        indirectDefense = 0;
     bool starsFirepower = false;
     std::vector<Classification> requiredClassifications;
     std::vector<std::string> validTerrains;
@@ -1109,6 +1110,7 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
       newEffect.starsFirepower = 0;
       newEffect.counterFireBonus = 0;
       newEffect.towerDefense = 10;
+      newEffect.indirectDefense = 20;
       newData.d2d.push_back(newEffect);
     }
     {
@@ -1122,6 +1124,7 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
       newEffect.counterFireBonus = 0;
       newEffect.towerFirepower = 10;
       newEffect.towerDefense = 10;
+      newEffect.indirectDefense = 20;
       newData.cop.push_back(newEffect);
     }
     {
@@ -1135,6 +1138,7 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
       newEffect.counterFireBonus = 0;
       newEffect.towerFirepower = 20;
       newEffect.towerDefense = 20;
+      newEffect.indirectDefense = 60;
       newData.scop.push_back(newEffect);
     }
     commanderPowers["javier"] = newData;
@@ -1803,8 +1807,6 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
       }
       return nullptr;
     };
-    auto attackerMatchup =
-        getMatchupPointer(attackingUnit.name, defendingUnit.name);
     auto setBaseDamage =
         [&](std::pair<std::optional<int>, std::optional<int>> const* ptr,
             UnitData const& data, UnitType const& type,
@@ -1828,12 +1830,19 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
       return {};
     };
     // Set the base damage
+    auto attackerMatchup =
+        getMatchupPointer(attackingUnit.name, defendingUnit.name);
     unitPropertiesA.baseDamage =
         setBaseDamage(attackerMatchup, unitDataA, attackingUnit, true);
     auto defenderMatchup =
         getMatchupPointer(defendingUnit.name, attackingUnit.name);
     unitPropertiesB.baseDamage =
-        setBaseDamage(defenderMatchup, unitDataB, defendingUnit, true);
+        setBaseDamage(defenderMatchup, unitDataB, defendingUnit, false);
+
+    bool attackerIndirect = std::ranges::find(unitDataA.classifications, "indirect") != unitDataA.classifications.end(); 
+    if (attackerIndirect) {
+      unitPropertiesB.baseDamage = {};
+    }
 
     auto addCOEffects =
         [&](UnitProperties& properties, UnitData const& unitData,
@@ -1876,6 +1885,7 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
                   properties.firepowerBoost += effect.propertyFirepower * urban;
                   properties.towerFirepower += effect.towerFirepower;
                   properties.towerDefense += effect.towerDefense;
+                  properties.indirectDefense += effect.indirectDefense;
                   if (!attacking) {
                     properties.firepowerBoost += effect.counterFireBonus;
                   }
@@ -1913,6 +1923,10 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
                  defendingUnit.copState, false);
     unitPropertiesA = unitPropertiesA.addTowers(attackingUnit.towers);
     unitPropertiesB = unitPropertiesB.addTowers(defendingUnit.towers);
+
+    if (attackerIndirect) {
+      unitPropertiesB.defenseBoost += unitPropertiesB.indirectDefense;
+    }
 
     return ret;
   } catch (std::runtime_error const& e) {

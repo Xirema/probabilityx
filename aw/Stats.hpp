@@ -33,6 +33,7 @@ struct UnitProperties {
   int badLuck = 0;
   int towerFirepower = 0;
   int towerDefense = 0;
+  int indirectDefense = 0;
 
   constexpr UnitProperties addTowers(int towers) const {
     UnitProperties copy{*this};

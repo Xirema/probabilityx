@@ -79,3 +79,17 @@ print!JavierInf3
 print!JavierInf4
 print!JavierInf4B
 print!JavierInf5
+
+AndyArty:artillery|road|andy|||||||
+ArtyInf0:infantry|road|andy|||||||
+ArtyInf1:infantry|road|javier|||||||
+ArtyInf2:infantry|road|javier|2||||||
+
+AndyArty>ArtyInf0
+AndyArty>ArtyInf1
+AndyArty>ArtyInf2
+
+print!AndyArty
+print!ArtyInf0
+print!ArtyInf1
+print!ArtyInf2
