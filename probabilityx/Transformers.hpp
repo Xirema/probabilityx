@@ -42,8 +42,23 @@ constexpr std::pair<dice::MappedRoll, dice::MappedRoll> split(
     Rollable auto&& roll, Transformer auto&& resultTransformer,
     Transformer auto&& extraTransformer) {
   return std::make_pair(
-      transform(resultTransformer, std::forward<decltype(roll)>(roll)),
-      transform(extraTransformer, std::forward<decltype(roll)>(roll)));
+      transform(std::forward<decltype(resultTransformer)>(resultTransformer), std::forward<decltype(roll)>(roll)),
+      transform(std::forward<decltype(extraTransformer)>(extraTransformer), std::forward<decltype(roll)>(roll)));
+}
+
+template<typename Func>
+concept RollFilter = requires(Func f, Outcome o) {
+  {f(o)} -> std::convertible_to<bool>;
+};
+
+constexpr dice::MappedRoll filter(Rollable auto && roll, RollFilter auto && rollFilter) {
+  std::map<Outcome, BigInt> map;
+  for (auto outcome : roll) {
+    if (rollFilter(outcome)) {
+      map[outcome] = roll(outcome);
+    }
+  }
+  return dice::MappedRoll{map};
 }
 
 }  // namespace probx

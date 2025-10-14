@@ -44,6 +44,8 @@
 #       - Option: NoKill will set the minimum HP after a damage effect to 1.
 #     - heal: The number of hitpoints to restore to the unit
 #     - roundup: Any fractional HP is rounded up to the nearest whole number (so 1-9 rounds up to 10, 11-19 rounds up to 20, etc.)
+#     - filterhp: Filters a unit's HP to only the values that match the predicate.
+#       - Option: one of 'equals', 'notequals', 'lessthan', 'greaterthan', 'atleast', 'atmost'
 
 GrimmTank:tank|plains|grimm|2||1||||
 Victim:tank|plains|andy|||||||
