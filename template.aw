@@ -45,7 +45,9 @@
 #     - heal: The number of hitpoints to restore to the unit
 #     - roundup: Any fractional HP is rounded up to the nearest whole number (so 1-9 rounds up to 10, 11-19 rounds up to 20, etc.)
 #     - filterhp: Filters a unit's HP to only the values that match the predicate.
-#       - Option: one of 'equals', 'notequals', 'lessthan', 'greaterthan', 'atleast', 'atmost'
+#       - Option: one of 'equals', 'notequals', 'lessthan', 'greaterthan', 'atleast', 'atmost', 'between'
+#       - When option 'equals' or 'notequals' are used, hp values may be comma-delimited.
+#       - When option 'between' used, hp values must be exactly two, comma-delimited.
 
 GrimmTank:tank|plains|grimm|2||1||||
 Victim:tank|plains|andy|||||||

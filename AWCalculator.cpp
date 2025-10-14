@@ -226,16 +226,26 @@ int main() {
             return static_cast<Integer>(std::ceil(o.result / 10.)) * 10;
           } | clampHitpoints;
         } else if (type == "filterhp") {
-          auto hpFilter = [&change](int type) {
-            return [&change, type](Outcome o) {
-              auto changeValue = std::stoi(change);
+          auto hpFilter = [&change, lineNumber](int type) {
+            return [&change, type, lineNumber](Outcome o) {
+              auto valueStrings = change 
+                | std::views::split(std::string{","}) 
+                | std::ranges::to<std::vector<std::string>>();
+              auto values = valueStrings
+                | std::views::transform([](std::string const& v){return std::stoi(v);}) 
+                | std::ranges::to<std::vector<Integer>>();
+              if (type == 6 && values.size() != 2) {
+                std::println(std::cerr, "filterhp values must be exactly 2 when 'between' option is used on line {}.", lineNumber);
+                exit(-1);
+              }
               switch (type) {
-                case 0: return o == changeValue;
-                case 1: return o != changeValue;
-                case 2: return o < changeValue;
-                case 3: return o <= changeValue;
-                case 4: return o > changeValue;
-                case 5: return o >= changeValue;
+                case 0: return std::ranges::find(values, o) != values.end();
+                case 1: return std::ranges::find(values, o) == values.end();
+                case 2: return o < values.at(0);
+                case 3: return o <= values.at(0);
+                case 4: return o > values.at(0);
+                case 5: return o >= values.at(0);
+                case 6: return o >= values.at(0) && o <= values.at(1);
                 default: return false;
               }
             };
@@ -246,10 +256,17 @@ int main() {
             {"lessthan", hpFilter(2)},
             {"greaterthan", hpFilter(4)},
             {"atmost", hpFilter(3)},
-            {"atleast", hpFilter(5)}
+            {"atleast", hpFilter(5)},
+            {"between", hpFilter(6)}
           };
           if (!option || validOptions.find(*option) == validOptions.end()) {
-            std::print(std::cerr, "'filterhp' modification requires one of 'equals', 'lessthan', 'greaterthan', 'notequals', 'atmost', 'atleast' on line {}.\n", lineNumber);
+            auto optionNames = 
+                validOptions 
+              | std::views::keys 
+              | std::views::transform([](std::string const& v) {return std::format("'{}'", v);})
+              | std::views::join_with(std::string{", "})
+              | std::ranges::to<std::string>();
+            std::print(std::cerr, "'filterhp' modification requires one of {} on line {}.\n", optionNames, lineNumber);
             return -1;
           }
           unitData.hitPoints = filter(unitData.hitPoints, validOptions.at(*option));
