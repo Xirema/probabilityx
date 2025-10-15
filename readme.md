@@ -31,6 +31,8 @@ AdderIntInf1:infantry|shoals|adder|||||||
 
 # This move already happened. In-game, we observed that the attacker and defender both ended up at 6 HP Units
 # So now we filter the results to determine what the actual distribution of hp is
+# We use two filters: 'defenderhp<51,60<between' and 'attackerhp<51,60<between'.
+# Since we already know what the visible outcome was, we can discard any outcomes that don't match.
 AdderIntInf1>SonjaCaptInf>defenderhp<51,60<between>attackerhp<51,60<between
 
 echo!### In-Game Results ###
