@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
 project(libprobabilityx)
-#set(CMAKE_CXX_STANDARD 26)
-#set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(Boost_ROOT /sharedy/workspaces/boost)
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
