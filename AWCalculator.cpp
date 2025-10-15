@@ -63,11 +63,97 @@ constexpr std::expected<UnitData, ParseError> parse(std::string_view string) {
 }
 
 using namespace probx;
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 constexpr Outcome clampHitpoints(Outcome o) {
   return Outcome{o.result > 100 ? 100 : o.result < 0 ? 0 : o.result};
 }
 constexpr Outcome clampNonlethal(Outcome o) {
   return Outcome{o.result > 100 ? 100 : o.result < 1 ? 1 : o.result};
+}
+
+constexpr auto hpFilter(std::string change, int type, int lineNumber) {
+  return [&change, type, lineNumber](Outcome o) {
+    auto valueStrings = change 
+      | std::views::split(std::string{","}) 
+      | std::ranges::to<std::vector<std::string>>();
+    auto values = valueStrings
+      | std::views::transform([](std::string const& v){return std::stoi(v);}) 
+      | std::ranges::to<std::vector<Integer>>();
+    if (type == 6 && values.size() != 2) {
+      std::println(std::cerr, "filterhp values must be exactly 2 when 'between' option is used on line {}.", lineNumber);
+      exit(-1);
+    }
+    switch (type) {
+      case 0: return std::ranges::find(values, o.result) != values.end();
+      case 1: return std::ranges::find(values, o.result) == values.end();
+      case 2: return o.result < values.at(0);
+      case 3: return o.result <= values.at(0);
+      case 4: return o.result > values.at(0);
+      case 5: return o.result >= values.at(0);
+      case 6: return o.result >= values.at(0) && o.result <= values.at(1);
+      default: return false;
+    }
+  };
+}
+
+constexpr void filterResults(dice::MappedRoll & results, std::string_view arg, int lineNumber) {
+  auto filterArgs = arg | std::views::split('<');
+  size_t index = 0;
+  std::string type, value, option;
+  for (auto string : filterArgs) {
+    switch (index++) {
+      case 0:
+        type = std::string{std::string_view{string}};
+        break;
+      case 1:
+        value = std::string{std::string_view{string}};
+        break;
+      case 2:
+        option = std::string{std::string_view{string}};
+        break;
+      default:
+        std::println(std::cerr, "Too many arguments in filter '{}' on line {}.", arg, lineNumber);
+        exit(-1);
+    }
+  }
+  if (index < 3) {
+    std::println(std::cerr, "Too few arguments in filter '{}' on line {}.", arg, lineNumber);
+    exit(-1);
+  }
+  if (type != "attackerhp" && type != "defenderhp") {
+    std::println(std::cerr, "Filter type in filter '{}' invalid, must be 'attackerhp' or 'defenderhp' on line {}.", arg, lineNumber);
+    exit(-1);
+  }
+
+  std::map<std::string, std::function<bool(Outcome)>> validOptions{
+    {"equals", hpFilter(value, 0, lineNumber)},
+    {"notequals", hpFilter(value, 1, lineNumber)},
+    {"lessthan", hpFilter(value, 2, lineNumber)},
+    {"atmost", hpFilter(value, 3, lineNumber)},
+    {"greaterthan", hpFilter(value, 4, lineNumber)},
+    {"atleast", hpFilter(value, 5, lineNumber)},
+    {"between", hpFilter(value, 6, lineNumber)}
+  };
+  
+  if (validOptions.find(option) == validOptions.end()) {
+    auto optionNames = 
+        validOptions 
+      | std::views::keys 
+      | std::views::transform([](std::string_view v) {return std::format("'{}'", v);})
+      | std::views::join_with(", "sv)
+      | std::ranges::to<std::string>();
+    std::print(std::cerr, "'filterhp' modification requires one of {} on line {}.\n", optionNames, lineNumber);
+    exit(-1);
+  }
+
+  auto finalFilter = [&](Outcome o) {
+    if (type == "defenderhp") {
+      o = Outcome{o.extra, o.result};
+    }
+    return validOptions.at(option)(o);
+  };
+  results = filter(results, finalFilter);
 }
 
 int main() {
@@ -105,7 +191,7 @@ int main() {
       }
     } else if (line.find('>') != std::string::npos) {
       boost::split(args, line, [](char c) { return c == '>'; });
-      if (args.size() != 2) {
+      if (args.size() < 2) {
         std::print(std::cerr, "Improperly specified Attack on line {}\n",
                    lineNumber);
         return -1;
@@ -129,6 +215,11 @@ int main() {
         defendProps.defenseBoost += defender.defenseMod;
         auto results = calculateCombat(attackProps, defendProps,
                                        attacker.hitPoints, defender.hitPoints);
+        if (args.size() > 2) {
+          for (auto const arg : args | std::views::drop(2)) {
+            filterResults(results, arg, lineNumber);
+          }
+        }
         std::tie(attacker.hitPoints, defender.hitPoints) = split(results);
       } else {
         std::print(std::cerr,
@@ -226,38 +317,14 @@ int main() {
             return static_cast<Integer>(std::ceil(o.result / 10.)) * 10;
           } | clampHitpoints;
         } else if (type == "filterhp") {
-          auto hpFilter = [&change, lineNumber](int type) {
-            return [&change, type, lineNumber](Outcome o) {
-              auto valueStrings = change 
-                | std::views::split(std::string{","}) 
-                | std::ranges::to<std::vector<std::string>>();
-              auto values = valueStrings
-                | std::views::transform([](std::string const& v){return std::stoi(v);}) 
-                | std::ranges::to<std::vector<Integer>>();
-              if (type == 6 && values.size() != 2) {
-                std::println(std::cerr, "filterhp values must be exactly 2 when 'between' option is used on line {}.", lineNumber);
-                exit(-1);
-              }
-              switch (type) {
-                case 0: return std::ranges::find(values, o) != values.end();
-                case 1: return std::ranges::find(values, o) == values.end();
-                case 2: return o < values.at(0);
-                case 3: return o <= values.at(0);
-                case 4: return o > values.at(0);
-                case 5: return o >= values.at(0);
-                case 6: return o >= values.at(0) && o <= values.at(1);
-                default: return false;
-              }
-            };
-          };
           std::map<std::string, std::function<bool(Outcome)>> validOptions{
-            {"equals", hpFilter(0)},
-            {"notequals", hpFilter(1)},
-            {"lessthan", hpFilter(2)},
-            {"greaterthan", hpFilter(4)},
-            {"atmost", hpFilter(3)},
-            {"atleast", hpFilter(5)},
-            {"between", hpFilter(6)}
+            {"equals", hpFilter(change, 0, lineNumber)},
+            {"notequals", hpFilter(change, 1, lineNumber)},
+            {"lessthan", hpFilter(change, 2, lineNumber)},
+            {"atmost", hpFilter(change, 3, lineNumber)},
+            {"greaterthan", hpFilter(change, 4, lineNumber)},
+            {"atleast", hpFilter(change, 5, lineNumber)},
+            {"between", hpFilter(change, 6, lineNumber)}
           };
           if (!option || validOptions.find(*option) == validOptions.end()) {
             auto optionNames = 
@@ -267,7 +334,7 @@ int main() {
               | std::views::join_with(std::string{", "})
               | std::ranges::to<std::string>();
             std::print(std::cerr, "'filterhp' modification requires one of {} on line {}.\n", optionNames, lineNumber);
-            return -1;
+            exit(-1);
           }
           unitData.hitPoints = filter(unitData.hitPoints, validOptions.at(*option));
         }

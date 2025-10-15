@@ -22,9 +22,15 @@
 #   * ExtraDefense: Adds a custom amount of defense to a unit for debugging purposes. Defaults to 0. Accepts integers only, measured in percentage points.
 # 
 # BATTLE DEFINITION
-# Attacker>Defender
+# Attacker>Defender>Filters...
 #   * Attacker: refers to the unit identifier of the attacking unit.
 #   * Defender: refers to the unit identifier of the defending unit. If this unit belongs to a SCOP'd Sonja, the attacking order will NOT be flipped.
+#     - Filters take the form of Type<Value<Option.
+#       - Type is one of attackerhp or defenderhp
+#       - Value is a comma-delimited list of values to filter the hp to
+#       - Option is one of 'equals', 'notequals', 'lessthan', 'greaterthan', 'atleast', 'atmost', 'between'
+#       - if Option is 'between' the Values must be exactly two values
+#       - Multiple Filters may be applied simultaneously by chaining with '>'
 # 
 # COMMAND DEFINITION
 # Command!Args
@@ -49,51 +55,37 @@
 #       - When option 'equals' or 'notequals' are used, hp values may be comma-delimited.
 #       - When option 'between' used, hp values must be exactly two, comma-delimited.
 
-GrimmTank:tank|plains|grimm|2||1||||
-Victim:tank|plains|andy|||||||
-GrimmTank<terrain<city
-GrimmTank>Victim
-print!Victim
-print!GrimmTank
+# Sonja is trying to capture a neutral base, and Adder doesn't want to let her. He has two infantry in position, and tries to interrupt
+SonjaCaptInf:infantry|base|sonja|||||||
+AdderIntInf1:infantry|shoals|adder|||||||
 
-GrimmTank<damage<200<NoKill
-print!GrimmTank
+# Context: this move already happened. In-game, we observed that the attacker and defender both ended up at 6 HP Units
+# So now we filter the results to determine what the actual distribution of hp is
+AdderIntInf1>SonjaCaptInf>defenderhp<51,60<between>attackerhp<51,60<between
 
-JavierInf0:infantry|road|javier|||0||||
-JavierInf1:infantry|road|javier|||1||||
-JavierInf2:infantry|road|javier|||2||||
-JavierInf3:infantry|road|javier|1||1||||
-JavierInf4:infantry|road|javier|2||1||||
-JavierInf4B:infantry|road|javier|||4||||
-JavierInf5:infantry|road|javier|1||2||||
+echo!### In-Game Results ###
+print!AdderIntInf1
+print!SonjaCaptInf
 
-AndyInf:infantry|road|andy|||||||100
-AndyInf>JavierInf0
-AndyInf>JavierInf1
-AndyInf>JavierInf2
-AndyInf>JavierInf3
-AndyInf>JavierInf4
-AndyInf>JavierInf4B
-AndyInf>JavierInf5
+# Now, we have a second infantry show up to try to finish the job.
+AdderIntInf2:infantry|shoals|adder|||||||
 
-print!JavierInf0
-print!JavierInf1
-print!JavierInf2
-print!JavierInf3
-print!JavierInf4
-print!JavierInf4B
-print!JavierInf5
+# In-game, the attacking infantry didn't (appear) to take any damage, and the defending infantry was reduced to 1HP
+AdderIntInf2>SonjaCaptInf>attackerhp<91<atleast>defenderhp<10<atmost
 
-AndyArty:artillery|road|andy|||||||
-ArtyInf0:infantry|road|andy|||||||
-ArtyInf1:infantry|road|javier|||||||
-ArtyInf2:infantry|road|javier|2||||||
+print!AdderIntInf2
+print!SonjaCaptInf
 
-AndyArty>ArtyInf0
-AndyArty>ArtyInf1
-AndyArty>ArtyInf2
+# Now, we roll it all back, and just find out all the possible ranges of outcomes.
+SonjaCaptInf:infantry|base|sonja|||||||
+AdderIntInf1:infantry|shoals|adder|||||||
+AdderIntInf2:infantry|shoals|adder|||||||
+AdderIntInf1>SonjaCaptInf
+AdderIntInf2>SonjaCaptInf
 
-print!AndyArty
-print!ArtyInf0
-print!ArtyInf1
-print!ArtyInf2
+echo!
+echo!
+echo!### Theoretical Results ###
+print!SonjaCaptInf
+print!AdderIntInf1
+print!AdderIntInf2
