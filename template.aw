@@ -55,11 +55,11 @@
 #       - When option 'equals' or 'notequals' are used, hp values may be comma-delimited.
 #       - When option 'between' used, hp values must be exactly two, comma-delimited.
 
-# Sonja is trying to capture a neutral base, and Adder doesn't want to let her. He has two infantry in position, and tries to interrupt
+# Context: Sonja is trying to capture a neutral base, and Adder doesn't want to let her. He has two infantry in position, and tries to interrupt
 SonjaCaptInf:infantry|base|sonja|||||||
 AdderIntInf1:infantry|shoals|adder|||||||
 
-# Context: this move already happened. In-game, we observed that the attacker and defender both ended up at 6 HP Units
+# This move already happened. In-game, we observed that the attacker and defender both ended up at 6 HP Units
 # So now we filter the results to determine what the actual distribution of hp is
 AdderIntInf1>SonjaCaptInf>defenderhp<51,60<between>attackerhp<51,60<between
 
