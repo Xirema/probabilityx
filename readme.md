@@ -21,6 +21,8 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DBoost_ROOT=<path_to_boost_1.89>
 
 The application can then be run from the build directory, or copied to a different directory to be run in.
 
+The exact Boost version can be a lower version, but the cmake config will need to be changed to match the version being compiled with, or else the compilation will fail. Some older versions of the Boost.Multiprecision library are known to have defects that specifically affect the functionality used in this library, so using at least 1.89 is preferred.
+
 ## Example
 An example script:
 
