@@ -10,7 +10,7 @@
 #     - river, reef, sea, bridge, pipeline, lab, tower
 #   * CommandingOfficer: An AWBW Commanding Officer. Possible COs:
 #     - andy, colin, drake, eagle, flak, grimm, grit, hachi, hawke, jake, javier, jess, jugger
-#     - kanbei, kindle, koal, lash, max, nell, olaf, rachel, sami, sasha, sensei, sonja
+#     - kanbei, kindle, koal, lash, max, nell, olaf, rachel, sami, sasha, sensei, sonja, sonjads
 #     - sturm, awbwsturm, von_bolt
 #   * COPState: 0 for D2D only, 1 for COP, 2 for SCOP
 #   * Ammo: 'true' or empty if the unit has ammo, 'false' if the unit doesn't have ammo.

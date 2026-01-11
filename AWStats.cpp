@@ -1,7 +1,6 @@
 #include "aw/Stats.hpp"
 
-std::expected<std::pair<aw::UnitProperties, aw::UnitProperties>, std::string>
-aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
+std::expected<std::pair<aw::UnitProperties, aw::UnitProperties>, std::string> aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
   std::map<std::string, int> terrainStars;
   terrainStars["road"] = 0;
   terrainStars["plains"] = 1;
@@ -24,10 +23,7 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
   terrainStars["pipeline_seam_broken"] = 0;
   terrainStars["lab"] = 3;
   terrainStars["tower"] = 3;
-  std::map<
-      std::string,
-      std::map<std::string, std::pair<std::optional<int>, std::optional<int>>>>
-      unitMatchups;
+  std::map<std::string, std::map<std::string, std::pair<std::optional<int>, std::optional<int>>>> unitMatchups;
   struct UnitData {
     std::deque<bool> weaponRequiresAmmo;
     std::vector<std::string> classifications;
@@ -619,9 +615,8 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
     bool negate = false;
   };
   struct PassiveEffect {
-    int firepower = 0, defense = 0, terrainStars = 0, goodLuck = 0, badLuck = 0,
-        counterFireBonus = 0, propertyFirepower = 0, towerFirepower = 0, towerDefense = 0,
-        indirectDefense = 0;
+    int firepower = 0, defense = 0, terrainStars = 0, goodLuck = 0, badLuck = 0, counterFireBonus = 0, propertyFirepower = 0, towerFirepower = 0,
+        towerDefense = 0, indirectDefense = 0, enemyTerrainStars = 0;
     bool starsFirepower = false;
     std::vector<Classification> requiredClassifications;
     std::vector<std::string> validTerrains;
@@ -1703,6 +1698,45 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
     CommanderData newData;
     {
       PassiveEffect newEffect;
+      newEffect.firepower = 0;
+      newEffect.defense = 0;
+      newEffect.goodLuck = 0;
+      newEffect.badLuck = 4;
+      newEffect.terrainStars = 0;
+      newEffect.starsFirepower = 0;
+      newEffect.enemyTerrainStars = -1;
+      newData.d2d.push_back(newEffect);
+    }
+    {
+      PassiveEffect newEffect;
+      newEffect.firepower = 0;
+      newEffect.defense = 0;
+      newEffect.goodLuck = 0;
+      newEffect.badLuck = 0;
+      newEffect.terrainStars = 0;
+      newEffect.starsFirepower = 0;
+      newEffect.counterFireBonus = 0;
+      newEffect.enemyTerrainStars = -1;
+      newData.cop.push_back(newEffect);
+    }
+    {
+      PassiveEffect newEffect;
+      newEffect.firepower = 0;
+      newEffect.defense = 0;
+      newEffect.goodLuck = 0;
+      newEffect.badLuck = 0;
+      newEffect.terrainStars = 0;
+      newEffect.starsFirepower = 0;
+      newEffect.counterFireBonus = 0;
+      newEffect.enemyTerrainStars = -2;
+      newData.scop.push_back(newEffect);
+    }
+    commanderPowers["sonjads"] = newData;
+  }
+  {
+    CommanderData newData;
+    {
+      PassiveEffect newEffect;
       newEffect.firepower = 20;
       newEffect.defense = 20;
       newEffect.goodLuck = 0;
@@ -1774,153 +1808,117 @@ aw::getMatchup(aw::UnitType attackingUnit, aw::UnitType defendingUnit) {
     unitPropertiesA.goodLuck = 0;
     unitPropertiesB.baseDamage = {};
     unitPropertiesB.goodLuck = 0;
-    auto check = [](std::string const& name1, std::string const& name2,
-                    auto&& data, std::string_view type) {
+    auto check = [](std::string const& name1, std::string const& name2, auto&& data, std::string_view type) {
       if (data.find(name1) == data.end() || data.find(name2) == data.end()) {
         std::stringstream ss;
-        std::print(ss, "Unable to find {} Names: '{}', '{}'", type, name1,
-                   name2);
+        std::print(ss, "Unable to find {} Names: '{}', '{}'", type, name1, name2);
         throw std::runtime_error(ss.str());
       }
     };
     check(attackingUnit.name, defendingUnit.name, unitData, "Unit");
     auto const& unitDataA = unitData.at(attackingUnit.name);
     auto const& unitDataB = unitData.at(defendingUnit.name);
-    check(attackingUnit.commander, defendingUnit.commander, commanderPowers,
-          "Commander");
+    check(attackingUnit.commander, defendingUnit.commander, commanderPowers, "Commander");
     auto const& commanderDataA = commanderPowers.at(attackingUnit.commander);
     auto const& commanderDataB = commanderPowers.at(defendingUnit.commander);
-    check(attackingUnit.terrain, defendingUnit.terrain, terrainStars,
-          "Terrain");
+    check(attackingUnit.terrain, defendingUnit.terrain, terrainStars, "Terrain");
     auto const& starsA = terrainStars.at(attackingUnit.terrain);
     auto const& starsB = terrainStars.at(defendingUnit.terrain);
 
     auto getMatchupPointer = [&](std::string const& attackerName,
-                                 std::string const& defenderName)
-        -> std::pair<std::optional<int>, std::optional<int>> const* {
-      if (auto it1 = unitMatchups.find(attackerName);
-          it1 != unitMatchups.end()) {
-        if (auto it2 = it1->second.find(defenderName);
-            it2 != it1->second.end()) {
+                                 std::string const& defenderName) -> std::pair<std::optional<int>, std::optional<int>> const* {
+      if (auto it1 = unitMatchups.find(attackerName); it1 != unitMatchups.end()) {
+        if (auto it2 = it1->second.find(defenderName); it2 != it1->second.end()) {
           return &it2->second;
         }
       }
       return nullptr;
     };
-    auto setBaseDamage =
-        [&](std::pair<std::optional<int>, std::optional<int>> const* ptr,
-            UnitData const& data, UnitType const& type,
-            bool attacking = true) -> std::optional<int> {
+    auto setBaseDamage = [&](std::pair<std::optional<int>, std::optional<int>> const* ptr, UnitData const& data, UnitType const& type,
+                             bool attacking = true) -> std::optional<int> {
       if (!ptr) {
         return {};
       }
-      if (std::find(data.classifications.begin(), data.classifications.end(),
-                    "indirect") != data.classifications.end() &&
-          !attacking) {
+      if (std::find(data.classifications.begin(), data.classifications.end(), "indirect") != data.classifications.end() && !attacking) {
         return {};
       }
-      if (ptr->first && ((data.weaponRequiresAmmo.at(0) && type.hasAmmo) ||
-                         !data.weaponRequiresAmmo.at(0))) {
+      if (ptr->first && ((data.weaponRequiresAmmo.at(0) && type.hasAmmo) || !data.weaponRequiresAmmo.at(0))) {
         return ptr->first;
       }
-      if (ptr->second && ((data.weaponRequiresAmmo.at(1) && type.hasAmmo) ||
-                          !data.weaponRequiresAmmo.at(1))) {
+      if (ptr->second && ((data.weaponRequiresAmmo.at(1) && type.hasAmmo) || !data.weaponRequiresAmmo.at(1))) {
         return ptr->second;
       }
       return {};
     };
     // Set the base damage
-    auto attackerMatchup =
-        getMatchupPointer(attackingUnit.name, defendingUnit.name);
-    unitPropertiesA.baseDamage =
-        setBaseDamage(attackerMatchup, unitDataA, attackingUnit, true);
-    auto defenderMatchup =
-        getMatchupPointer(defendingUnit.name, attackingUnit.name);
-    unitPropertiesB.baseDamage =
-        setBaseDamage(defenderMatchup, unitDataB, defendingUnit, false);
+    auto attackerMatchup = getMatchupPointer(attackingUnit.name, defendingUnit.name);
+    unitPropertiesA.baseDamage = setBaseDamage(attackerMatchup, unitDataA, attackingUnit, true);
+    auto defenderMatchup = getMatchupPointer(defendingUnit.name, attackingUnit.name);
+    unitPropertiesB.baseDamage = setBaseDamage(defenderMatchup, unitDataB, defendingUnit, false);
 
-    bool attackerIndirect = std::ranges::find(unitDataA.classifications, "indirect") != unitDataA.classifications.end(); 
+    bool attackerIndirect = std::ranges::find(unitDataA.classifications, "indirect") != unitDataA.classifications.end();
     if (attackerIndirect) {
       unitPropertiesB.baseDamage = {};
     }
 
-    auto addCOEffects =
-        [&](UnitProperties& properties, UnitData const& unitData,
-            CommanderData const& commanderData, std::string const& terrain,
-            Integer terrainStars, Integer urban, int copState,
-            bool attacking = true) {
-          auto addAllPassiveEffects =
-              [&](std::vector<PassiveEffect> const& effects) {
-                for (PassiveEffect const& effect : effects) {
-                  auto const& requiredClassifications =
-                      effect.requiredClassifications;
-                  auto const& validTerrain = effect.validTerrains;
-                  if (validTerrain.size() > 0 &&
-                      std::find(validTerrain.begin(), validTerrain.end(),
-                                terrain) == validTerrain.end()) {
-                    continue;
-                  }
-                  if (requiredClassifications.size() > 0) {
-                    bool classificationsMatch = true;
-                    for (auto const& classification : requiredClassifications) {
-                      if (auto it = std::find(unitData.classifications.begin(),
-                                              unitData.classifications.end(),
-                                              classification.name);
-                          (classification.negate &&
-                           it != unitData.classifications.end()) ||
-                          (!classification.negate &&
-                           it == unitData.classifications.end())) {
-                        classificationsMatch = false;
-                        break;
-                      }
-                    }
-                    if (!classificationsMatch) {
-                      continue;
-                    }
-                  }
-                  properties.firepowerBoost += effect.firepower;
-                  properties.defenseBoost += effect.defense;
-                  properties.goodLuck += effect.goodLuck;
-                  properties.badLuck += effect.badLuck;
-                  properties.firepowerBoost += effect.propertyFirepower * urban;
-                  properties.towerFirepower += effect.towerFirepower;
-                  properties.towerDefense += effect.towerDefense;
-                  properties.indirectDefense += effect.indirectDefense;
-                  if (!attacking) {
-                    properties.firepowerBoost += effect.counterFireBonus;
-                  }
-                  if (effect.starsFirepower) {
-                    properties.damageStars = true;
-                  }
-                  properties.terrainStars +=
-                      effect.terrainStars * terrainStars / 100;
-                }
-              };
-
-          if (copState >= 0) {
-            addAllPassiveEffects(commanderData.d2d);
+    auto addCOEffects = [&](UnitProperties& properties, UnitData const& unitData, CommanderData const& commanderData, std::string const& terrain,
+                            Integer terrainStars, Integer urban, int copState, bool attacking = true) {
+      auto addAllPassiveEffects = [&](std::vector<PassiveEffect> const& effects) {
+        for (PassiveEffect const& effect : effects) {
+          auto const& requiredClassifications = effect.requiredClassifications;
+          auto const& validTerrain = effect.validTerrains;
+          if (validTerrain.size() > 0 && std::find(validTerrain.begin(), validTerrain.end(), terrain) == validTerrain.end()) {
+            continue;
           }
-          if (copState == 1) {
-            addAllPassiveEffects(commanderData.cop);
+          if (requiredClassifications.size() > 0) {
+            bool classificationsMatch = true;
+            for (auto const& classification : requiredClassifications) {
+              if (auto it = std::find(unitData.classifications.begin(), unitData.classifications.end(), classification.name);
+                  (classification.negate && it != unitData.classifications.end()) ||
+                  (!classification.negate && it == unitData.classifications.end())) {
+                classificationsMatch = false;
+                break;
+              }
+            }
+            if (!classificationsMatch) {
+              continue;
+            }
           }
-          if (copState == 2) {
-            addAllPassiveEffects(commanderData.scop);
+          properties.firepowerBoost += effect.firepower;
+          properties.defenseBoost += effect.defense;
+          properties.goodLuck += effect.goodLuck;
+          properties.badLuck += effect.badLuck;
+          properties.firepowerBoost += effect.propertyFirepower * urban;
+          properties.towerFirepower += effect.towerFirepower;
+          properties.towerDefense += effect.towerDefense;
+          properties.indirectDefense += effect.indirectDefense;
+          if (!attacking) {
+            properties.firepowerBoost += effect.counterFireBonus;
           }
-        };
+          if (effect.starsFirepower) {
+            properties.damageStars = true;
+          }
+          properties.terrainStars += effect.terrainStars * terrainStars / 100;
+          properties.enemyTerrainStars += effect.enemyTerrainStars;
+        }
+      };
 
-    addCOEffects(unitPropertiesA, unitDataA, baseline, attackingUnit.terrain,
-                 starsA, attackingUnit.properties, attackingUnit.copState,
-                 true);
-    addCOEffects(unitPropertiesB, unitDataB, baseline, defendingUnit.terrain,
-                 starsB, defendingUnit.properties, defendingUnit.copState,
-                 false);
+      if (copState >= 0) {
+        addAllPassiveEffects(commanderData.d2d);
+      }
+      if (copState == 1) {
+        addAllPassiveEffects(commanderData.cop);
+      }
+      if (copState == 2) {
+        addAllPassiveEffects(commanderData.scop);
+      }
+    };
 
-    addCOEffects(unitPropertiesA, unitDataA, commanderDataA,
-                 attackingUnit.terrain, starsA, attackingUnit.properties,
-                 attackingUnit.copState, true);
-    addCOEffects(unitPropertiesB, unitDataB, commanderDataB,
-                 defendingUnit.terrain, starsB, defendingUnit.properties,
-                 defendingUnit.copState, false);
+    addCOEffects(unitPropertiesA, unitDataA, baseline, attackingUnit.terrain, starsA, attackingUnit.properties, attackingUnit.copState, true);
+    addCOEffects(unitPropertiesB, unitDataB, baseline, defendingUnit.terrain, starsB, defendingUnit.properties, defendingUnit.copState, false);
+
+    addCOEffects(unitPropertiesA, unitDataA, commanderDataA, attackingUnit.terrain, starsA, attackingUnit.properties, attackingUnit.copState, true);
+    addCOEffects(unitPropertiesB, unitDataB, commanderDataB, defendingUnit.terrain, starsB, defendingUnit.properties, defendingUnit.copState, false);
     unitPropertiesA = unitPropertiesA.addTowers(attackingUnit.towers);
     unitPropertiesB = unitPropertiesB.addTowers(defendingUnit.towers);
 

@@ -32,17 +32,15 @@ constexpr Integer MAXHP = 100;
 struct CombatCompositor {
   UnitProperties unitA{};
   UnitProperties unitB{};
-  constexpr probx::Outcome operator()(probx::Outcome a,
-                                      probx::Outcome b) const {
+  constexpr probx::Outcome operator()(probx::Outcome a, probx::Outcome b) const {
     if (!unitA.baseDamage) {
       // Literally nothing happens.
       return probx::Outcome(a.extra, b.extra);
     }
+    int unitATerrainStars = std::max(0, unitA.terrainStars + unitB.enemyTerrainStars);
+    int unitBTerrainStars = std::max(0, unitB.terrainStars + unitA.enemyTerrainStars);
     double unitDamageA = *unitA.baseDamage;
-    double firepowerBoostA =
-        100 + unitA.firepowerBoost +
-        (unitA.damageStars ? unitA.terrainStars
-                           : 0)  //* effectiveHealth(a.special) / 10.
+    double firepowerBoostA = 100 + unitA.firepowerBoost + (unitA.damageStars ? unitATerrainStars * 10 : 0)  //* effectiveHealth(a.special) / 10.
         ;
     firepowerBoostA = std::max(firepowerBoostA, 0.);
     unitDamageA *= firepowerBoostA / 100;
@@ -57,8 +55,7 @@ struct CombatCompositor {
     // Used in cartridge, not used in AWBW
     // unitDamageA = std::max(unitDamageA, 0.);
 
-    double defenseBoostB = 100 + unitB.defenseBoost +
-                           unitB.terrainStars * effectiveHealth(b.extra) / 10.;
+    double defenseBoostB = 100 + unitB.defenseBoost + unitBTerrainStars * effectiveHealth(b.extra) / 10.;
 
     // Applies Defense
     unitDamageA *= (200 - defenseBoostB) / 100;
@@ -75,9 +72,9 @@ struct CombatCompositor {
       return probx::Outcome{a.extra, newHealthB};
     }
     double unitDamageB = *unitB.baseDamage;
-    double firepowerBoostB = 100 + unitB.firepowerBoost +
-                             (unitB.damageStars ? unitB.terrainStars : 0) *
-                                 effectiveHealth(newHealthB) / 10.;
+    double firepowerBoostB = 100 + unitB.firepowerBoost + (unitB.damageStars ? unitBTerrainStars * 10 : 0)
+        // * effectiveHealth(newHealthB) / 10.
+        ;
     firepowerBoostB = std::max(firepowerBoostB, 0.);
     unitDamageB *= firepowerBoostB / 100;
 
@@ -91,8 +88,7 @@ struct CombatCompositor {
     // Used in cartridge, not used in AWBW
     // unitDamageB = std::max(unitDamageB, 0.);
 
-    double defenseBoostA = 100 + unitA.defenseBoost +
-                           unitA.terrainStars * effectiveHealth(a.extra) / 10.;
+    double defenseBoostA = 100 + unitA.defenseBoost + unitATerrainStars * effectiveHealth(a.extra) / 10.;
 
     // Applies Defense
     unitDamageB *= (200 - defenseBoostA) / 100;
@@ -107,51 +103,35 @@ struct CombatCompositor {
   }
 };
 
-constexpr probx::Outcome fuse(probx::Outcome a, probx::Outcome b) {
-  return probx::Outcome{a.result, b.result};
-}
+constexpr probx::Outcome fuse(probx::Outcome a, probx::Outcome b) { return probx::Outcome{a.result, b.result}; }
 }  // namespace compositors
 
-constexpr probx::dice::MappedRoll calculateCombat(
-    UnitProperties const &attacker, UnitProperties const &defender,
-    probx::Rollable auto &&attackerHP, probx::Rollable auto &&defenderHP) {
-  compositors::CombatCompositor compositor{.unitA = attacker,
-                                           .unitB = defender};
+constexpr probx::dice::MappedRoll calculateCombat(UnitProperties const& attacker, UnitProperties const& defender, probx::Rollable auto&& attackerHP,
+                                                  probx::Rollable auto&& defenderHP) {
+  compositors::CombatCompositor compositor{.unitA = attacker, .unitB = defender};
   probx::dice::MappedRoll attackerLuck = probx::dice::Modifier{0};
   if (attacker.goodLuck > 0) {
-    attackerLuck =
-        probx::composite(probx::compositors::adder, attackerLuck,
-                         probx::dice::RegularDie{0, attacker.goodLuck});
+    attackerLuck = probx::composite(probx::compositors::adder, attackerLuck, probx::dice::RegularDie{0, attacker.goodLuck});
   }
   if (attacker.badLuck > 0) {
-    attackerLuck =
-        probx::composite(probx::compositors::adder, attackerLuck,
-                         probx::dice::RegularDie{-attacker.badLuck, 0});
+    attackerLuck = probx::composite(probx::compositors::adder, attackerLuck, probx::dice::RegularDie{-attacker.badLuck, 0});
   }
 
   probx::dice::MappedRoll defenderLuck = probx::dice::Modifier{0};
   if (defender.goodLuck > 0) {
-    defenderLuck =
-        probx::composite(probx::compositors::adder, defenderLuck,
-                         probx::dice::RegularDie{0, defender.goodLuck});
+    defenderLuck = probx::composite(probx::compositors::adder, defenderLuck, probx::dice::RegularDie{0, defender.goodLuck});
   }
   if (defender.badLuck > 0) {
-    defenderLuck =
-        probx::composite(probx::compositors::adder, defenderLuck,
-                         probx::dice::RegularDie{-defender.badLuck, 0});
+    defenderLuck = probx::composite(probx::compositors::adder, defenderLuck, probx::dice::RegularDie{-defender.badLuck, 0});
   }
 
-  auto unitAttacker =
-      probx::composite(compositors::fuse, attackerLuck, attackerHP);
-  auto unitDefender =
-      probx::composite(compositors::fuse, defenderLuck, defenderHP);
+  auto unitAttacker = probx::composite(compositors::fuse, attackerLuck, attackerHP);
+  auto unitDefender = probx::composite(compositors::fuse, defenderLuck, defenderHP);
 
   return probx::composite(compositor, unitAttacker, unitDefender);
 }
 
-constexpr probx::dice::MappedRoll calculateCombat(
-    UnitProperties const &attacker, UnitProperties const &defender) {
-  return calculateCombat(attacker, defender, probx::dice::Modifier{100},
-                         probx::dice::Modifier{100});
+constexpr probx::dice::MappedRoll calculateCombat(UnitProperties const& attacker, UnitProperties const& defender) {
+  return calculateCombat(attacker, defender, probx::dice::Modifier{100}, probx::dice::Modifier{100});
 }
 }  // namespace aw
