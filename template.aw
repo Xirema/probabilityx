@@ -65,7 +65,7 @@ AdderIntInf1:infantry|shoals|adder|||||||
 # Since we already know what the visible outcome was, we can discard any outcomes that don't match.
 AdderIntInf1>SonjaCaptInf>defenderhp<51,60<between>attackerhp<51,60<between
 
-echo!### In-Game Results ###
+echo!=== In-Game Results ===
 print!AdderIntInf1
 print!SonjaCaptInf
 
@@ -87,7 +87,7 @@ AdderIntInf2>SonjaCaptInf
 
 echo!
 echo!
-echo!### Theoretical Results ###
+echo!=== Theoretical Results ===
 print!SonjaCaptInf
 print!AdderIntInf1
 print!AdderIntInf2

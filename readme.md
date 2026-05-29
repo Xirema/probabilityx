@@ -37,7 +37,7 @@ AdderIntInf1:infantry|shoals|adder|||||||
 # Since we already know what the visible outcome was, we can discard any outcomes that don't match.
 AdderIntInf1>SonjaCaptInf>defenderhp<51,60<between>attackerhp<51,60<between
 
-echo!### In-Game Results ###
+echo!=== In-Game Results ===
 print!AdderIntInf1
 print!SonjaCaptInf
 
@@ -59,7 +59,7 @@ AdderIntInf2>SonjaCaptInf
 
 echo!
 echo!
-echo!### Theoretical Results ###
+echo!=== Theoretical Results ===
 print!SonjaCaptInf
 print!AdderIntInf1
 print!AdderIntInf2
@@ -68,7 +68,7 @@ print!AdderIntInf2
 The output it produces:
 
 ```
-### In-Game Results ###
+=== In-Game Results ===
 AdderIntInf1: infantry on shoals controlled by adder, in state 0 with ammo, with 0 towers and 0 properties, at (approximately) 53 Hitpoints.
     HP :    Odds      Dead%    Alive%
   [ 51]:  18.182%   18.182%  100.000%
@@ -100,7 +100,7 @@ SonjaCaptInf: infantry on base controlled by sonja, in state 0 with ammo, with 0
   [ 10]:  18.182%  100.000%   18.182%
 
 
-### Theoretical Results ###
+=== Theoretical Results ===
 SonjaCaptInf: infantry on base controlled by sonja, in state 0 with ammo, with 0 towers and 0 properties, at (approximately) 11 Hitpoints.
     HP :    Odds      Dead%    Alive%
   [  4]:   2.000%    2.000%  100.000%

@@ -2,3 +2,5 @@ build
 debug
 release
 .vscode
+*.aw
+!template.aw
