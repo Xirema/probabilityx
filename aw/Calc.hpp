@@ -8,7 +8,7 @@
 
 namespace aw {
 constexpr Integer awround(Decimal f) {
-  f = std::round(f);
+  f = std::floor(f);
   return static_cast<Integer>(f);
 }
 
@@ -32,6 +32,7 @@ constexpr Integer MAXHP = 100;
 struct CombatCompositor {
   UnitProperties unitA{};
   UnitProperties unitB{};
+  bool cartAccurateRound{true};
   constexpr probx::Outcome operator()(probx::Outcome a, probx::Outcome b) const {
     if (!unitA.baseDamage) {
       // Literally nothing happens.
@@ -63,7 +64,12 @@ struct CombatCompositor {
     // Clamps to prevent negative damage
     unitDamageA = std::max(unitDamageA, 0.);
 
-    int finalDamageA = awround2(unitDamageA);
+    int finalDamageA;
+    if (cartAccurateRound) {
+      finalDamageA = awround2(unitDamageA);
+    } else {
+      finalDamageA = awround(unitDamageA);
+    }
 
     int newHealthB = std::clamp(b.extra - finalDamageA, MINHP, MAXHP);
 
@@ -96,7 +102,12 @@ struct CombatCompositor {
     // Clamps to prevent negative damage
     unitDamageB = std::max(unitDamageB, 0.);
 
-    int finalDamageB = awround2(unitDamageB);
+    int finalDamageB;
+    if (cartAccurateRound) {
+      finalDamageB = awround2(unitDamageB);
+    } else {
+      finalDamageB = awround(unitDamageB);
+    }
 
     int newHealthA = std::clamp(a.extra - finalDamageB, MINHP, MAXHP);
     return probx::Outcome{newHealthA, newHealthB};
@@ -107,8 +118,8 @@ constexpr probx::Outcome fuse(probx::Outcome a, probx::Outcome b) { return probx
 }  // namespace compositors
 
 constexpr probx::dice::MappedRoll calculateCombat(UnitProperties const& attacker, UnitProperties const& defender, probx::Rollable auto&& attackerHP,
-                                                  probx::Rollable auto&& defenderHP) {
-  compositors::CombatCompositor compositor{.unitA = attacker, .unitB = defender};
+                                                  probx::Rollable auto&& defenderHP, bool cartAccurateRounding = true) {
+  compositors::CombatCompositor compositor{.unitA = attacker, .unitB = defender, .cartAccurateRound = cartAccurateRounding};
   probx::dice::MappedRoll attackerLuck = probx::dice::Modifier{0};
   if (attacker.goodLuck > 0) {
     attackerLuck = probx::composite(probx::compositors::adder, attackerLuck, probx::dice::RegularDie{0, attacker.goodLuck});

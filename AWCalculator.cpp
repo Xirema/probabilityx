@@ -54,12 +54,14 @@ auto hpFilter(std::string change, int type, int lineNumber) {
 
 void filterResults(dice::MappedRoll & results, std::string_view arg, int lineNumber);
 void parseUnitDefinition(std::string_view line, int lineNumber, std::map<std::string, UnitData>& units);
-void parseBattle(std::string_view line, int lineNumber, std::map<std::string, UnitData>& units);
+void parseBattle(std::string_view line, int lineNumber, std::map<std::string, UnitData>& units, std::map<std::string, std::string>& switches);
 void parseCommand(std::string_view line, int lineNumber, std::map<std::string, UnitData>& units);
 void parseModification(std::string_view line, int lineNumber, std::map<std::string, UnitData>& units);
+void parseSwitch(std::string_view line, int lineNumber, std::map<std::string, std::string>& switches);
 
 int main() {
   std::map<std::string, UnitData> units;
+  std::map<std::string, std::string> switches;
   std::string line;
   int lineNumber = 0;
   while (std::getline(std::cin, line)) {
@@ -75,11 +77,13 @@ int main() {
       if (line.find(':') != std::string::npos) {
         parseUnitDefinition(line, lineNumber, units);
       } else if (line.find('>') != std::string::npos) {
-        parseBattle(line, lineNumber, units);
+        parseBattle(line, lineNumber, units, switches);
       } else if (line.find('!') != std::string::npos) {
         parseCommand(line, lineNumber, units);
       } else if (line.find('<') != std::string::npos) {
         parseModification(line, lineNumber, units);
+      } else if (line.find('?') != std::string::npos) {
+        parseSwitch(line, lineNumber, switches);
       }
     } catch (std::exception const& e) {
       std::println(std::cerr, "Error parsing line {}: {}", lineNumber, e.what());
@@ -110,7 +114,7 @@ void parseUnitDefinition(std::string_view line, int lineNumber, std::map<std::st
   units[std::string{args.at(0)}] = unitData;
 }
 
-void parseBattle(std::string_view line, int lineNumber, std::map<std::string, UnitData>& units) {
+void parseBattle(std::string_view line, int lineNumber, std::map<std::string, UnitData>& units, std::map<std::string, std::string>& switches) {
   std::vector<std::string_view> args;
   boost::split(args, line, [](char c) { return c == '>'; });
   if (args.size() < 2) {
@@ -131,7 +135,8 @@ void parseBattle(std::string_view line, int lineNumber, std::map<std::string, Un
     attackProps.defenseBoost += attacker.defenseMod;
     defendProps.firepowerBoost += defender.firepowerMod;
     defendProps.defenseBoost += defender.defenseMod;
-    auto results = calculateCombat(attackProps, defendProps, attacker.hitPoints, defender.hitPoints);
+    bool cartAccurateRound = switches["zgame"] != "true";
+    auto results = calculateCombat(attackProps, defendProps, attacker.hitPoints, defender.hitPoints, cartAccurateRound);
     if (args.size() > 2) {
       for (auto const arg : args | std::views::drop(2)) {
         filterResults(results, arg, lineNumber);
@@ -334,7 +339,7 @@ void filterResults(dice::MappedRoll & results, std::string_view arg, int lineNum
       | std::views::join_with(", "sv)
       | std::ranges::to<std::string>();
     
-    throw std::runtime_error(std::format("'filterhp' modification requires one of {} on line {}.\n", optionNames, lineNumber));
+    throw std::runtime_error(std::format("'filterhp' modification requires one of {} on line {}.", optionNames, lineNumber));
   }
 
   auto finalFilter = [&](Outcome o) {
@@ -344,4 +349,15 @@ void filterResults(dice::MappedRoll & results, std::string_view arg, int lineNum
     return validOptions.at(option)(o);
   };
   results = filter(results, finalFilter);
+}
+
+void parseSwitch(std::string_view line, int lineNumber, std::map<std::string, std::string>& switches){
+  auto args = line | std::views::split('?');
+  auto argCount = std::ranges::distance(args);
+  if (argCount != 2) {
+    throw std::runtime_error(std::format("Incorrect args in switch on line {}.", lineNumber));
+  }
+  auto switchName = *std::ranges::begin(args);
+  auto switchValue = *++std::ranges::begin(args);
+  switches[std::string{std::string_view{switchName}}] = std::string{std::string_view{switchValue}};
 }
