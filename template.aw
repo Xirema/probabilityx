@@ -54,6 +54,11 @@
 #       - Option: one of 'equals', 'notequals', 'lessthan', 'greaterthan', 'atleast', 'atmost', 'between'
 #       - When option 'equals' or 'notequals' are used, hp values may be comma-delimited.
 #       - When option 'between' used, hp values must be exactly two, comma-delimited.
+# SWITCH DEFINITION
+# Name?Value
+#   * Name: Name of the switch that will be modified. Possible Switches:
+#     - zgame (true/false): Modifies combat calculations to use zgame formulas (affects damage rounding)
+#   * Value: value that will be assigned the switch.
 
 # Context: Sonja is trying to capture a neutral base, and Adder doesn't want to let her. He has two infantry in position, and tries to interrupt
 SonjaCaptInf:infantry|base|sonja|||||||
